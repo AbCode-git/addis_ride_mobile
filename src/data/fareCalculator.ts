@@ -6,6 +6,12 @@ export interface FareEstimate {
     maxEstimate: number;
     surgeApplied: boolean;
     surgeReason?: string;
+    durationMin: number;
+    // Breakdown components
+    baseFare: number;
+    distanceCost: number;
+    timeCost: number;
+    surgeAmount: number;
 }
 
 /**
@@ -15,13 +21,17 @@ export function calculateFares(
     distanceKm: number,
     durationMin: number,
     providers: RideProvider[],
-    currentHour: number = new Date().getHours()
+    currentHour: number = new Date().getHours(),
+    category: 'economy' | 'comfort' | 'van' = 'economy'
 ): FareEstimate[] {
     return providers.map((provider) => {
+        const catMultiplier = provider.categoryMultipliers?.[category] || 1.0;
+
         // 1. Calculate Base Cost
-        const distanceCost = distanceKm * provider.perKmRate;
-        const timeCost = durationMin * provider.perMinuteRate;
-        const rawFare = provider.baseFare + distanceCost + timeCost;
+        const distanceCost = (distanceKm * provider.perKmRate) * catMultiplier;
+        const timeCost = (durationMin * provider.perMinuteRate) * catMultiplier;
+        const baseFare = provider.baseFare * catMultiplier;
+        const rawFare = baseFare + distanceCost + timeCost;
 
         // 2. Determine Surge
         let multiplier = 1.0;
@@ -39,12 +49,12 @@ export function calculateFares(
         }
 
         const surgeFare = rawFare * multiplier;
+        const surgeAmount = surgeFare - rawFare;
 
         // 3. Apply Minimum Fare
         const finalFareBase = Math.max(surgeFare, provider.minFare);
 
         // 4. Create Range (+/- 5-15%)
-        // Traffic in Addis is unpredictable, so we add a buffer.
         const minEstimate = Math.floor(finalFareBase * 0.95);
         const maxEstimate = Math.ceil(finalFareBase * 1.15);
 
@@ -54,6 +64,11 @@ export function calculateFares(
             maxEstimate,
             surgeApplied: multiplier > 1.0,
             surgeReason,
+            durationMin,
+            baseFare,
+            distanceCost,
+            timeCost,
+            surgeAmount,
         };
     }).sort((a, b) => a.minEstimate - b.minEstimate); // Sort cheapest first
 }
