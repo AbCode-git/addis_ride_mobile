@@ -145,11 +145,38 @@ export const HomeScreen = () => {
         });
     };
 
-    const handleFavoriteSelect = (fav: FavoriteRoute) => {
+    const handleFavoriteSelect = async (fav: FavoriteRoute) => {
+        setError(null);
+
+        // Set the location names immediately for UI feedback
         setPickup(fav.pickup);
         setDropoff(fav.dropoff);
-        setPickupCoord(undefined); // Favs usually strings, router will static lookup
-        setDropoffCoord(undefined);
+
+        try {
+            // Geocode both locations in parallel
+            const [pickupResults, dropoffResults] = await Promise.all([
+                ORSService.geocode(fav.pickup),
+                ORSService.geocode(fav.dropoff)
+            ]);
+
+            // Set coordinates if found
+            if (pickupResults.length > 0) {
+                setPickupCoord({ lat: pickupResults[0].lat, lng: pickupResults[0].lng });
+            } else {
+                setError(t('errors.invalidLocations') + `: ${fav.pickup}`);
+                setPickupCoord(undefined);
+            }
+
+            if (dropoffResults.length > 0) {
+                setDropoffCoord({ lat: dropoffResults[0].lat, lng: dropoffResults[0].lng });
+            } else {
+                setError(t('errors.invalidLocations') + `: ${fav.dropoff}`);
+                setDropoffCoord(undefined);
+            }
+        } catch (error) {
+            console.error('Error geocoding favorite locations:', error);
+            setError(t('errors.comparisonFailed'));
+        }
     };
 
     const handleSelectLocation = (loc: any, type: 'pickup' | 'dropoff') => {
