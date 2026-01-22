@@ -118,6 +118,11 @@ export const ResultsScreen = () => {
 
     const handleShare = async () => {
         try {
+            // Safety check: ensure we have estimates
+            if (estimates.length === 0) {
+                return; // Gracefully do nothing if no results
+            }
+
             const cheapest = estimates[0];
             const provider = calibratedProviders.find(p => p.id === cheapest?.providerId);
             const message = t('results.share', origin, destination, provider?.name, cheapest?.minEstimate, cheapest?.maxEstimate);

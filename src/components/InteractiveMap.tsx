@@ -144,7 +144,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ start, end, poly
 
         return () => {
             clearInterval(interval);
-            // Cleanup markers handled by map.eachLayer in next effect or unmount
+            // Properly cleanup map instance to prevent memory leaks
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+            }
         };
     }, [start, end, polyline]);
 
