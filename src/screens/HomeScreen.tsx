@@ -62,9 +62,14 @@ export const HomeScreen = () => {
     const [showDropoffModal, setShowDropoffModal] = useState(false);
     const [favorites, setFavorites] = useState<FavoriteRoute[]>([]);
     const [recents, setRecents] = useState<any[]>([]);
+    const [error, setError] = useState<string | null>(null);
 
     // Pulse animation for the main CTA
     const pulseAnim = useRef(new Animated.Value(1)).current;
+
+    const clearError = () => {
+        if (error) setError(null);
+    };
 
     useEffect(() => {
         const pulse = Animated.loop(
@@ -94,7 +99,7 @@ export const HomeScreen = () => {
             // Morning: 7-9 AM, Afternoon: 4-7 PM (16-19)
             if ((hour >= 7 && hour < 9) || (hour >= 16 && hour < 19)) {
                 setIsRushHour(true);
-                Alert.alert("Rush Hour Detected", "Fares updated for peak traffic conditions.");
+                // Alert.alert("Rush Hour", t('home.rushAlertBody')); // Reduced annoyance
             }
 
             const storedFavs = await StorageService.loadFavorites();
@@ -111,8 +116,19 @@ export const HomeScreen = () => {
     }, []);
 
     const handleCompare = async () => {
+        setError(null);
+
         if (!pickup.trim() || !dropoff.trim()) {
-            Alert.alert("Missing Info", "Please select both Pickup and Drop-off locations.");
+            setError(t('errors.missingLocations'));
+            return;
+        }
+
+        // Validate coordinates (basic check)
+        if (!pickupCoord || !dropoffCoord) {
+            // Fallback: try to geocode quickly if missing?
+            // For now, strict validation to ensure accurate pricing
+            if (!pickupCoord) setError(`${t('errors.invalidLocations')}: ${pickup}`);
+            else setError(`${t('errors.invalidLocations')}: ${dropoff}`);
             return;
         }
 
@@ -138,10 +154,12 @@ export const HomeScreen = () => {
 
     const handleSelectLocation = (loc: any, type: 'pickup' | 'dropoff') => {
         if (type === 'pickup') {
+            clearError();
             setPickup(loc.name);
             if (loc.lat && loc.lng) setPickupCoord({ lat: loc.lat, lng: loc.lng });
             else setPickupCoord(undefined);
         } else {
+            clearError();
             setDropoff(loc.name);
             if (loc.lat && loc.lng) setDropoffCoord({ lat: loc.lat, lng: loc.lng });
             else setDropoffCoord(undefined);
@@ -304,7 +322,7 @@ export const HomeScreen = () => {
             <ScrollView contentContainerStyle={tw`flex-grow px-6 pt-12 pb-8`}>
 
                 {/* Header */}
-                <View style={tw`flex-row justify-between items-center mb-12`}>
+                <View style={tw`flex-row justify-between items-center mb-6`}>
                     <Text style={tw`text-indigo-400 font-bold text-base`}>{t('home.title')}</Text>
                     <View style={tw`flex-row items-center gap-3`}>
                         <TouchableOpacity
@@ -320,6 +338,20 @@ export const HomeScreen = () => {
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                {/* Error Banner */}
+                {error && (
+                    <View style={tw`bg-rose-500/10 border border-rose-500/50 p-4 rounded-xl mb-6`}>
+                        <View style={tw`flex-row items-center justify-between`}>
+                            <Text style={tw`text-rose-400 text-sm font-medium flex-1 mr-2`}>
+                                {error}
+                            </Text>
+                            <TouchableOpacity onPress={() => setError(null)}>
+                                <X size={16} color="#FB7185" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
 
                 {/* Hero */}
                 <View style={tw`items-center mb-8`}>

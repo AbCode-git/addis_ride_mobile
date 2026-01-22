@@ -89,6 +89,16 @@ export const SettingsScreen = () => {
                     {t('settings.subtitle')}
                 </Text>
 
+                {/* Legal Links */}
+                <View style={tw`flex-row gap-4 mb-6`}>
+                    <TouchableOpacity onPress={() => (navigation as any).navigate('PrivacyPolicy')}>
+                        <Text style={tw`text-indigo-400 text-xs font-bold underline`}>{t('legal.privacyPolicy')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => (navigation as any).navigate('Terms')}>
+                        <Text style={tw`text-indigo-400 text-xs font-bold underline`}>{t('legal.termsOfService')}</Text>
+                    </TouchableOpacity>
+                </View>
+
                 {/* Language Settings */}
                 <View style={tw`bg-zinc-900 rounded-3xl p-6 mb-6 border border-zinc-700`}>
                     <View style={tw`flex-row items-center justify-between`}>

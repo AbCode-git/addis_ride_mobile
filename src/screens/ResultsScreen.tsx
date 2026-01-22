@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Animated, Easing, Share } from 'react-native';
 import tw from 'twrnc';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { ArrowLeft, MapPin, Share2 } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Share2, AlertTriangle, RefreshCw } from 'lucide-react-native';
 
 import { getRouteEstimate, RouteResult } from '../services/mockRouter';
 import { calculateFares, FareEstimate } from '../data/fareCalculator';
@@ -24,6 +24,8 @@ export const ResultsScreen = () => {
     const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null);
     const [estimates, setEstimates] = useState<FareEstimate[]>([]);
     const [category, setCategory] = useState<'economy' | 'comfort' | 'van'>('economy');
+
+    const [error, setError] = useState<string | null>(null);
 
     // Pulse animation for skeleton
     const pulseAnim = useRef(new Animated.Value(0.4)).current;
@@ -72,10 +74,22 @@ export const ResultsScreen = () => {
         load();
     }, []);
 
-    useEffect(() => {
-        const fetchData = async () => {
+    const fetchData = async () => {
+        try {
             setLoading(true);
+            setError(null);
+
+            // Check for valid coordinates first
+            if (!originCoord || !destinationCoord) {
+                throw new Error(t('errors.invalidLocations'));
+            }
+
             const result = await getRouteEstimate(origin, destination, originCoord, destinationCoord);
+
+            if (!result || result.distanceKm === 0) {
+                throw new Error(t('errors.noRouteFound'));
+            }
+
             setRouteInfo(result);
 
             const hour = forceRushHour ? 18 : new Date().getHours();
@@ -90,8 +104,15 @@ export const ResultsScreen = () => {
             fares.sort((a, b) => a.minEstimate - b.minEstimate);
 
             setEstimates(fares);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || t('errors.routingFailed'));
+        } finally {
             setLoading(false);
-        };
+        }
+    };
+
+    useEffect(() => {
         fetchData();
     }, [origin, destination, forceRushHour, calibratedProviders, category, originCoord, destinationCoord]);
 
@@ -142,6 +163,34 @@ export const ResultsScreen = () => {
                     <SkeletonCard />
                     <SkeletonCard />
                     <SkeletonCard />
+                </View>
+            ) : error ? (
+                <View style={tw`flex-1 items-center justify-center px-8`}>
+                    <View style={tw`bg-zinc-900 p-8 rounded-3xl w-full items-center border border-zinc-800`}>
+                        <View style={tw`bg-rose-500/10 p-4 rounded-full mb-6`}>
+                            <AlertTriangle size={48} color="#F43F5E" />
+                        </View>
+                        <Text style={tw`text-white text-xl font-bold mb-2 text-center`}>
+                            {t('errors.comparisonFailed')}
+                        </Text>
+                        <Text style={tw`text-zinc-400 text-center mb-8 leading-6`}>
+                            {error}
+                        </Text>
+                        <TouchableOpacity
+                            onPress={fetchData}
+                            style={tw`bg-indigo-600 py-3.5 px-6 rounded-xl flex-row items-center mb-4`}
+                        >
+                            <RefreshCw size={18} color="white" style={tw`mr-2`} />
+                            <Text style={tw`text-white font-bold`}>{t('errors.tryAgain')}</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            style={tw`py-2`}
+                        >
+                            <Text style={tw`text-zinc-500 font-medium`}>{t('home.close')}</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={tw`pb-20`}>
