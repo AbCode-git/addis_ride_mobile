@@ -33,10 +33,12 @@ export const ORSService = {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
-            const response = await fetch(BASE_URL, {
+            // ORS API requires the key as a query parameter, not in headers
+            const url = `${BASE_URL}?api_key=${ORS_API_KEY}`;
+
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': ORS_API_KEY,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(body),
