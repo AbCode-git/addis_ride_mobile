@@ -1,10 +1,20 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Platform } from 'react-native';
+import { View, Platform, StyleSheet } from 'react-native';
 import tw from 'twrnc';
 
-// Only import leaflet on web
+// Conditional imports
+let MapView: any, Marker: any, Polyline: any, PROVIDER_GOOGLE: any;
 let L: any;
-if (Platform.OS === 'web') {
+
+if (Platform.OS !== 'web') {
+    // Native: Use react-native-maps
+    const maps = require('react-native-maps');
+    MapView = maps.default;
+    Marker = maps.Marker;
+    Polyline = maps.Polyline;
+    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
+} else {
+    // Web: Use Leaflet
     L = require('leaflet');
     require('leaflet/dist/leaflet.css');
 }
@@ -16,7 +26,7 @@ interface InteractiveMapProps {
 }
 
 /**
- * Decodes encoded polyline (Google format)
+ * Decodes encoded polyline (Google format) for Leaflet
  */
 function decodePolyline(encoded: string) {
     if (!encoded) return [];
@@ -45,12 +55,84 @@ function decodePolyline(encoded: string) {
     return points;
 }
 
-export const InteractiveMap: React.FC<InteractiveMapProps> = ({ start, end, polyline }) => {
+/**
+ * Decodes polyline for react-native-maps format
+ */
+function decodePolylineToCoords(encoded: string): { latitude: number; longitude: number }[] {
+    const points = decodePolyline(encoded);
+    return points.map(p => ({ latitude: p[0], longitude: p[1] }));
+}
+
+// NATIVE MAP COMPONENT (Android/iOS)
+const NativeMap: React.FC<InteractiveMapProps> = ({ start, end, polyline }) => {
+    const mapRef = useRef<any>(null);
+    const routeCoords = polyline ? decodePolylineToCoords(polyline) : [];
+
+    useEffect(() => {
+        // Fit to route or markers after map loads
+        if (mapRef.current) {
+            const coordinates = routeCoords.length > 0
+                ? routeCoords
+                : [
+                    { latitude: start.lat, longitude: start.lng },
+                    { latitude: end.lat, longitude: end.lng }
+                ];
+
+            setTimeout(() => {
+                mapRef.current?.fitToCoordinates(coordinates, {
+                    edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                    animated: true,
+                });
+            }, 500);
+        }
+    }, [start, end, polyline]);
+
+    return (
+        <MapView
+            ref={mapRef}
+            style={styles.map}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={{
+                latitude: (start.lat + end.lat) / 2,
+                longitude: (start.lng + end.lng) / 2,
+                latitudeDelta: 0.1,
+                longitudeDelta: 0.1,
+            }}
+            customMapStyle={darkMapStyle}
+        >
+            {/* Start Marker */}
+            <Marker
+                coordinate={{ latitude: start.lat, longitude: start.lng }}
+                pinColor="#818CF8"
+                title="Pickup"
+            />
+
+            {/* End Marker */}
+            <Marker
+                coordinate={{ latitude: end.lat, longitude: end.lng }}
+                pinColor="#FB7185"
+                title="Dropoff"
+            />
+
+            {/* Route Polyline */}
+            {routeCoords.length > 0 && (
+                <Polyline
+                    coordinates={routeCoords}
+                    strokeColor="#818CF8"
+                    strokeWidth={4}
+                />
+            )}
+        </MapView>
+    );
+};
+
+// WEB MAP COMPONENT (Leaflet)
+const WebMap: React.FC<InteractiveMapProps> = ({ start, end, polyline }) => {
     const mapRef = useRef<any>(null);
     const containerRef = useRef<any>(null);
 
     useEffect(() => {
-        if (Platform.OS !== 'web' || !containerRef.current || !L) return;
+        if (!containerRef.current || !L) return;
 
         // Initialize map if not already done
         if (!mapRef.current) {
@@ -96,17 +178,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ start, end, poly
             const path = decodePolyline(polyline);
             if (path.length > 0) {
                 const line = L.polyline(path, {
-                    color: '#818CF8', // Indigo
+                    color: '#818CF8',
                     weight: 4,
                     opacity: 0.8,
                     lineJoin: 'round'
                 }).addTo(map);
 
-                // Fit bounds
                 map.fitBounds(line.getBounds(), { padding: [30, 30] });
             }
         } else {
-            // Just fit to markers
             const bounds = L.latLngBounds([
                 [start.lat, start.lng],
                 [end.lat, end.lng]
@@ -114,51 +194,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ start, end, poly
             map.fitBounds(bounds, { padding: [50, 50] });
         }
 
-        // Add Drivers Simulation
-        const drivers: any[] = [];
-        const carIcon = L.divIcon({
-            className: 'car-icon',
-            html: `<div style="transform: rotate(${Math.random() * 360}deg);">🚕</div>`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-        });
-
-        // Spawn 4 drivers near the start point
-        for (let i = 0; i < 4; i++) {
-            const lat = start.lat + (Math.random() * 0.01 - 0.005);
-            const lng = start.lng + (Math.random() * 0.01 - 0.005);
-            const marker = L.marker([lat, lng], { icon: carIcon }).addTo(map);
-            drivers.push(marker);
-        }
-
-        // Animate drivers
-        const interval = setInterval(() => {
-            drivers.forEach(d => {
-                const pos = d.getLatLng();
-                d.setLatLng([
-                    pos.lat + (Math.random() * 0.0004 - 0.0002),
-                    pos.lng + (Math.random() * 0.0004 - 0.0002)
-                ]);
-            });
-        }, 3000);
-
         return () => {
-            clearInterval(interval);
-            // Properly cleanup map instance to prevent memory leaks
             if (mapRef.current) {
                 mapRef.current.remove();
                 mapRef.current = null;
             }
         };
     }, [start, end, polyline]);
-
-    if (Platform.OS !== 'web') {
-        return (
-            <View style={tw`w-full h-96 bg-zinc-800 rounded-3xl items-center justify-center`}>
-                {/* Fallback for native */}
-            </View>
-        );
-    }
 
     return (
         <View
@@ -167,3 +209,102 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ start, end, poly
         />
     );
 };
+
+// MAIN COMPONENT - Platform Switch
+export const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
+    if (Platform.OS === 'web') {
+        return <WebMap {...props} />;
+    }
+    return <NativeMap {...props} />;
+};
+
+const styles = StyleSheet.create({
+    map: {
+        width: '100%',
+        height: 384, // h-96 equivalent
+        borderRadius: 24,
+        overflow: 'hidden',
+    }
+});
+
+// Dark map style for Google Maps (native)
+const darkMapStyle = [
+    { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+    {
+        featureType: 'administrative.locality',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#d59563' }]
+    },
+    {
+        featureType: 'poi',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#d59563' }]
+    },
+    {
+        featureType: 'poi.park',
+        elementType: 'geometry',
+        stylers: [{ color: '#263c3f' }]
+    },
+    {
+        featureType: 'poi.park',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#6b9a76' }]
+    },
+    {
+        featureType: 'road',
+        elementType: 'geometry',
+        stylers: [{ color: '#38414e' }]
+    },
+    {
+        featureType: 'road',
+        elementType: 'geometry.stroke',
+        stylers: [{ color: '#212a37' }]
+    },
+    {
+        featureType: 'road',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#9ca5b3' }]
+    },
+    {
+        featureType: 'road.highway',
+        elementType: 'geometry',
+        stylers: [{ color: '#746855' }]
+    },
+    {
+        featureType: 'road.highway',
+        elementType: 'geometry.stroke',
+        stylers: [{ color: '#1f2835' }]
+    },
+    {
+        featureType: 'road.highway',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#f3d19c' }]
+    },
+    {
+        featureType: 'transit',
+        elementType: 'geometry',
+        stylers: [{ color: '#2f3948' }]
+    },
+    {
+        featureType: 'transit.station',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#d59563' }]
+    },
+    {
+        featureType: 'water',
+        elementType: 'geometry',
+        stylers: [{ color: '#17263c' }]
+    },
+    {
+        featureType: 'water',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#515c6d' }]
+    },
+    {
+        featureType: 'water',
+        elementType: 'labels.text.stroke',
+        stylers: [{ color: '#17263c' }]
+    }
+];

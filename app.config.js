@@ -23,6 +23,11 @@ export default {
                 "ACCESS_FINE_LOCATION",
                 "ACCESS_COARSE_LOCATION"
             ],
+            config: {
+                googleMaps: {
+                    apiKey: "AIzaSyDummyKeyForExpoMapsReplaceLater"
+                }
+            },
             adaptiveIcon: {
                 foregroundImage: "./assets/adaptive-icon.png",
                 backgroundColor: "#000000"
