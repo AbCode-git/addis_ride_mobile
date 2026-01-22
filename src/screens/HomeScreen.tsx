@@ -393,58 +393,7 @@ export const HomeScreen = () => {
                     </Text>
                 </View>
 
-                {/* Favorites Section */}
-                <View style={tw`mb-8`}>
-                    <View style={tw`flex-row justify-between items-center mb-4`}>
-                        <Text style={tw`text-white font-bold text-sm tracking-widest uppercase opacity-70`}>{t('home.quickTrips')}</Text>
-                        {(pickup && dropoff) && (
-                            <TouchableOpacity onPress={handleSaveFavorite} style={tw`flex-row items-center`}>
-                                <Star size={12} color="#818CF8" />
-                                <Text style={tw`text-indigo-400 text-xs font-bold ml-1`}>{t('home.saveFav')}</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row`}>
-                        {favorites.map((fav) => {
-                            const Icon = ICON_MAP[fav.icon] || Star;
-                            return (
-                                <TouchableOpacity
-                                    key={fav.id}
-                                    onPress={() => handleFavoriteSelect(fav)}
-                                    style={tw`bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mr-3 items-center w-24`}
-                                >
-                                    <View style={tw`bg-zinc-800 p-2 rounded-xl mb-2`}>
-                                        <Icon size={18} color="#818CF8" />
-                                    </View>
-                                    <Text style={tw`text-white text-[11px] font-bold`} numberOfLines={1}>{fav.label}</Text>
-                                    <Text style={tw`text-zinc-500 text-[9px]`} numberOfLines={1}>{fav.pickup}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-                </View>
 
-                {/* Trending Destinations */}
-                <View style={tw`mb-8`}>
-                    <Text style={tw`text-white font-bold text-sm tracking-widest uppercase opacity-70 mb-4`}>{t('home.trending')}</Text>
-                    <View style={tw`flex-row flex-wrap justify-between`}>
-                        {[
-                            { name: 'Bole Airport', icon: '✈️' },
-                            { name: 'Mexico', icon: '🏢' },
-                            { name: 'Piassa', icon: '🏛️' },
-                            { name: 'Kazanchis', icon: '👜' }
-                        ].map((item) => (
-                            <TouchableOpacity
-                                key={item.name}
-                                onPress={() => setDropoff(item.name)}
-                                style={tw`bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-3 w-[48%] flex-row items-center`}
-                            >
-                                <Text style={tw`text-lg mr-3`}>{item.icon}</Text>
-                                <Text style={tw`text-white text-xs font-bold`}>{item.name}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
 
                 {/* Recent Searches */}
                 {recents.length > 0 && (
@@ -541,6 +490,59 @@ export const HomeScreen = () => {
                         </LinearGradient>
                     </Animated.View>
                 </TouchableOpacity>
+
+                {/* Favorites Section */}
+                <View style={tw`mb-8`}>
+                    <View style={tw`flex-row justify-between items-center mb-4`}>
+                        <Text style={tw`text-white font-bold text-sm tracking-widest uppercase opacity-70`}>{t('home.quickTrips')}</Text>
+                        {(pickup && dropoff) && (
+                            <TouchableOpacity onPress={handleSaveFavorite} style={tw`flex-row items-center`}>
+                                <Star size={12} color="#818CF8" />
+                                <Text style={tw`text-indigo-400 text-xs font-bold ml-1`}>{t('home.saveFav')}</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row`}>
+                        {favorites.map((fav) => {
+                            const Icon = ICON_MAP[fav.icon] || Star;
+                            return (
+                                <TouchableOpacity
+                                    key={fav.id}
+                                    onPress={() => handleFavoriteSelect(fav)}
+                                    style={tw`bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mr-3 items-center w-24`}
+                                >
+                                    <View style={tw`bg-zinc-800 p-2 rounded-xl mb-2`}>
+                                        <Icon size={18} color="#818CF8" />
+                                    </View>
+                                    <Text style={tw`text-white text-[11px] font-bold`} numberOfLines={1}>{fav.label}</Text>
+                                    <Text style={tw`text-zinc-500 text-[9px]`} numberOfLines={1}>{fav.pickup}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
+
+                {/* Trending Destinations */}
+                <View style={tw`mb-8`}>
+                    <Text style={tw`text-white font-bold text-sm tracking-widest uppercase opacity-70 mb-4`}>{t('home.trending')}</Text>
+                    <View style={tw`flex-row flex-wrap justify-between`}>
+                        {[
+                            { name: 'Bole Airport', icon: '✈️' },
+                            { name: 'Mexico', icon: '🏢' },
+                            { name: 'Piassa', icon: '🏛️' },
+                            { name: 'Kazanchis', icon: '👜' }
+                        ].map((item) => (
+                            <TouchableOpacity
+                                key={item.name}
+                                onPress={() => setDropoff(item.name)}
+                                style={tw`bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-3 w-[48%] flex-row items-center`}
+                            >
+                                <Text style={tw`text-lg mr-3`}>{item.icon}</Text>
+                                <Text style={tw`text-white text-xs font-bold`}>{item.name}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
 
                 {/* Footer */}
                 <View style={tw`mt-auto items-center`}>
