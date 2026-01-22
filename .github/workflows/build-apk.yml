@@ -30,26 +30,34 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@v8
-        with:
-          expo-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Create .env file
         run: |
           echo "ORS_API_KEY=${{ secrets.ORS_API_KEY }}" > .env
 
-      - name: Build APK with EAS
-        run: |
-          npx eas-cli build --platform android --profile preview --non-interactive --no-wait
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Install Expo CLI
+        run: npm install -g @expo/cli
 
-      - name: Upload APK artifact (if local build)
-        if: failure()
+      - name: Prebuild Android project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build Android APK
+        working-directory: ./android
+        run: ./gradlew assembleRelease
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release.apk
-          path: android/app/build/outputs/apk/release/*.apk
+          name: app-release
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
+
+      - name: Get APK Info
+        run: |
+          echo "### ✅ APK Build Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **File:** app-release.apk" >> $GITHUB_STEP_SUMMARY
+          echo "📁 **Download from:** Actions → This workflow run → Artifacts" >> $GITHUB_STEP_SUMMARY
+          ls -lh android/app/build/outputs/apk/release/app-release.apk >> $GITHUB_STEP_SUMMARY
