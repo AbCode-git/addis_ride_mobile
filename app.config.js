@@ -19,6 +19,10 @@ export default {
         },
         android: {
             package: "com.addisride.compare",
+            permissions: [
+                "ACCESS_FINE_LOCATION",
+                "ACCESS_COARSE_LOCATION"
+            ],
             adaptiveIcon: {
                 foregroundImage: "./assets/adaptive-icon.png",
                 backgroundColor: "#000000"
