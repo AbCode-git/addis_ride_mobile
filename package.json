@@ -29,6 +29,7 @@
     "react-native-screens": "^4.19.0",
     "react-native-svg": "^15.15.1",
     "react-native-web": "^0.21.0",
+    "react-native-webview": "^13.16.0",
     "twrnc": "^4.16.0"
   },
   "devDependencies": {
