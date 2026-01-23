@@ -37,7 +37,7 @@ export default {
             favicon: "./assets/favicon.png"
         },
         extra: {
-            orsApiKey: process.env.ORS_API_KEY,
+            // API keys are now moved to direct embedding for MVP reliability
         }
     }
 };

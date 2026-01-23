@@ -1,11 +1,8 @@
-import Constants from 'expo-constants';
-
-// Get API key from environment variable
-const ORS_API_KEY = Constants.expoConfig?.extra?.orsApiKey || '';
+// Hardcoded API key for MVP as per user request to ensure production builds work.
+const ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJiY2RlYzgwNDE5ZjRkYTViMWFmODE5OTk5ODk5OTM5IiwiaCI6Im11cm11cjY0In0=";
 
 if (!ORS_API_KEY) {
     console.warn('⚠️ ORS API key not configured. Geocoding may fail.');
-    console.warn('Make sure .env file exists with ORS_API_KEY variable');
 }
 
 const BASE_URL = "https://api.openrouteservice.org/v2/directions/driving-car";
